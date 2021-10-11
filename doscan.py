@@ -2,33 +2,31 @@ import os, glob
 from copy import deepcopy
 from collections import namedtuple
 from multiprocessing import Pool
+import argparse
 
+def parse_args():
+    
+    # create a keyvalue class for argparse
+    class keyvalue(argparse.Action):
+        def __call__( self , parser, namespace,
+                     values, option_string = None):
+            setattr(namespace, self.dest, dict())
+              
+            for value in values:
+                key, value = value.split('=')
+                getattr(namespace, self.dest)[key] = value
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', help='Input template')
+    parser.add_argument('--set', nargs="*", action=keyval, help= 'Set a number of key-value pairs with "key=value"')
+
+    args = parser.parse_args()
+    return args
+  
 Benchmark = namedtuple("Benchmark", "mu,m1,m2,m3,mstop,msq,tanbeta,udd")
 
 decoupled = 3000
-#scanname = "RPV1L_scan_3TeV_bino_sbR_q3L_epsilon"; benchmark = Benchmark._make([decoupled,200,decoupled,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_wino_sbR_q3L_epsilon"; benchmark = Benchmark._make([decoupled,decoupled,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_wino_sbR_q3L_epsilon"; benchmark = Benchmark._make([decoupled,decoupled,200,1000,1500,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)  #################GG production
-#scanname = "RPV1L_scan_5TeV_wino_sbR_q3L_epsilon"; benchmark = Benchmark._make([decoupled,decoupled,200,2000,2500,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)  #################GG production
-#scanname = "RPV1L_scan_3TeV_higgsino_sbR_q3L_epsilon"; benchmark = Benchmark._make([200,decoupled,decoupled,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_bino"; benchmark = Benchmark._make([decoupled,200,decoupled,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_wino"; benchmark = Benchmark._make([decoupled,decoupled,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_wino"; benchmark = Benchmark._make([decoupled,decoupled,200,1000,1500,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd) #################GG production
 scanname = "RPV1L_scan_3TeV_higgsino"; benchmark = Benchmark._make([200,1000,1000,decoupled,decoupled,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_higgsino"; benchmark = Benchmark._make([200,decoupled,decoupled,1000,1500,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd) #################GG production
-#scanname = "RPV1L_scan_3TeV_1TeVewk_bino"; benchmark = Benchmark._make([1000,200,1000,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_1TeVewk_wino"; benchmark = Benchmark._make([1000,1000,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p6TeVewk_wino"; benchmark = Benchmark._make([600,600,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p5TeVewk_negmu_wino"; benchmark = Benchmark._make([-500,500,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p5TeVbino_wino"; benchmark = Benchmark._make([decoupled,500,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p5TeVhiggsino_wino"; benchmark = Benchmark._make([500,decoupled,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_1TeVewk_higgsino"; benchmark = Benchmark._make([200,1000,1000,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p4TeVewk_decouplestop_wino"; benchmark = Benchmark._make([400,400,200,decoupled,decoupled,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_2TeV_0p5TeVewk_wino"; benchmark = Benchmark._make([500,500,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p3TeVewk_wino"; benchmark = Benchmark._make([300,300,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p5TeVewk_wino"; benchmark = Benchmark._make([500,500,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_0p5TeVbino_wino"; benchmark = Benchmark._make([decoupled,500,200,decoupled,1000,decoupled,10,"3321em1"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
-#scanname = "RPV1L_scan_3TeV_bino"; benchmark = Benchmark._make([400,200,decoupled,decoupled,1000,decoupled,10,"3321em0"]) #(mu,m1,m2,m3,mstop,msq,tanbeta,udd)
 overwrite = False
 
 map_params = {
@@ -39,14 +37,6 @@ map_params = {
     "MSTOPTEMPLATE":[benchmark.mstop],
     "TANBETATEMPLATE":[benchmark.tanbeta],
     }
-#udd_params = {"MFV":udd_params_mfv}
-#udd_params = dict(("3321em%d"%i,10.**(-i)) for i in range(0,5)) #FIXME 7
-#udd_params.update({"3321em2.5":10**(-2.5)})
-#udd_params.update({"3321em1.5":10**(-1.5)})
-#udd_params.update({"3321em1.2":10**(-1.2)})
-#udd_params.update( dict(("3321em0.%d"%i,10.**(-i/5.)) for i in range(1,5)) )
-#udd_params.update( dict(("3321em0.%d"%i,10.**(-i/10.)) for i in range(1,10)) )
-#udd_params.update({"3321em-0.2":10**(+0.2)})
 udd_params = {"3321em1":10**(-1)}
 dimensions = 2
 

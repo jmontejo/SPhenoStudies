@@ -1,6 +1,6 @@
 Block MODSEL      #  
 1 0               #  1/0: High/low scale input 
-2 1              # Boundary Condition  
+2 1               # Boundary Condition  
 6 0               # Generation Mixing
 12 1000.          # Renormalization scale 
 Block SMINPUTS    # Standard Model inputs 
@@ -15,7 +15,7 @@ Block EXTPAR      # Input parameters
 1 M1TEMPLATE      # M1input 
 2 M2TEMPLATE      # M2input
 3 M3TEMPLATE      # M3input
-11 4000           #At input -------->
+11 4000           #At input
 23 MUTEMPLATE     # Muinput
 25 TANBETATEMPLATE # TanBeta
 26 DECOUPLED    # MAinput
