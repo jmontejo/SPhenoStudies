@@ -41,8 +41,17 @@ def dict_to_jsonfile(thedict, jsonfile):
     with open(jsonfile,"w") as outfile:
         json.dump(thedict, outfile, allow_nan=False, indent=4)
 
-def test():
-    lhfile = "LesHouches.in.MSSMBpV_template"
+def split_io_dict(thedict):
+    inputdict, outputdict = {},{}
+    inputkeys = ["MODSEL","SMINPUTS","MINPAR","EXTPAR","SPhenoInput","DECAYOPTIONS","RVLAMUDDIN","MSD2IN","MSE2IN","MSL2IN","MSQ2IN","MSU2IN","RVTUDDIN","TDIN","TEIN","TUIN"]
+     for k, v in thedict:
+        if k in inputkeys:
+            inputdict[k] = v
+        else:
+            outputdict[k] = v
+    return inputdict, outputdict
+
+def test(lhfile):
     lhdict = lhfile_to_dict(lhfile) 
     for k,v in lhdict.items():
         print(k,v)
@@ -52,4 +61,6 @@ def test():
     lhout = "testout.leshouches"
     dict_to_lhfile(jsondict,lhout)
 
-if __name__ == "__main__": test()
+if __name__ == "__main__": 
+    test("LesHouches.in.MSSMBpV_template")
+    #test("SPheno.spc.MSSMBpV")
