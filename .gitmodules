@@ -1,0 +1,3 @@
+[submodule "SPheno"]
+	path = SPheno
+	url = https://github.com/jmontejo/SPheno.git
