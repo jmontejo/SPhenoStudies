@@ -4,6 +4,8 @@ git submodule update
 #tar -xzf SPheno-4.0.5.tar.gz
 
 #Get some new python3
+export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase
+alias setupATLAS='source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh'
 setupATLAS
 lsetup "views LCG_100 x86_64-centos7-gcc8-opt"
 
