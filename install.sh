@@ -10,6 +10,7 @@ lsetup "views LCG_100 x86_64-centos7-gcc8-opt"
 ### Link RPV models (more are available but not linked)
 cd SPheno/models
 ln -s ../../SARAH_models/Models/* .
+cd ../..
 
 ### Install SPheno
 cd SPheno
@@ -18,4 +19,5 @@ cd build
 cmake -DMODELS=MSSMTriRpV ..
 make -j8
 make install
+cd ..
 
