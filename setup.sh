@@ -1,3 +1,4 @@
 export SPHENO_ROOT=`pwd`
 export PYTHONPATH="$PYTHONPATH:$SPHENO_ROOT/python"
-export PATH="$PATH:$SPHENO_ROOT/SPheno/bin"
+export SPHENO_PATH="/Users/JMontejo/Documents/Physics/LeptonMultijet/SPheno4"
+export PATH="$PATH:$SPHENO_PATH/bin"
