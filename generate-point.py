@@ -32,7 +32,7 @@ def parse_args():
 
     default_template = "LesHouches.in.MSSMBpV_template"
     default_model = "MSSMTriRpV"
-    models = [x for x in os.listdir("SPheno/models") if not "README" in x]
+    models = [x for x in os.listdir(os.getenv("SPHENOPATH")+"/models") if not "README" in x]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', default=default_model, choices=models, help='Choose a model')

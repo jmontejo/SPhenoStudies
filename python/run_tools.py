@@ -6,6 +6,8 @@ def get_run_folders(outputfolder, n):
     return ["{}/{}".format(outputfolder,outmax+1+i) for i in range(n)]
 
 def get_run_folder(outputfolder):
+    if not os.path.exists(outputfolder):
+        os.makedirs(outputfolder,exist_ok=True)
     listdir = os.listdir(outputfolder)
     outmax = 0 if not listdir else max([int(x) for x in os.listdir(outputfolder) if x.isnumeric()])
     return "{}/{}".format(outputfolder,outmax+1)
