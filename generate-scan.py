@@ -49,14 +49,13 @@ def parse_args():
     return args
 
 def main():
-    args = parse_args()
-    lhdict = LH.lhfile_to_dict(args.input)
+    args    = parse_args()
+    manager = run_tools.SPhenoPointManager(args.output, args.model)
+    basesphenopoint = run_tools.SPhenoPoint(args.input, args.model)
     for point in LH.generate_point(args.ranges, args.ranges_file):
-        tmplhdict = LH.modify_lhdict(lhdict, point)
-        tmplhdict = LH.modify_lhdict(tmplhdict, args.values, args.values_file)
-        LH.validate_dict(tmplhdict)
-        run_folder = run_tools.get_run_folder(args.output)
-        run_tools.prepare_run_folder(run_folder, tmplhdict)
-        run_tools.run(run_folder, args.model)
+        sphenopoint = basesphenopoint.modify_point(point)
+        sphenopoint = sphenopoint.modify_point(args.values, args.values_file)
+        sphenopoint = manager.exists(sphenopoint)
+        sphenopoint.run(args.output)
 
 if __name__ == "__main__": main()

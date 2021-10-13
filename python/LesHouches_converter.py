@@ -27,11 +27,12 @@ def lhfile_to_dict(lhfile):
     return lhdict
 
 def dict_to_lhfile(thedict, lhfile):
+    print("dict_to_lhfile")
     with open(lhfile,"w") as outfile:
         for block, indict in thedict.items():
-            outfile.write("Block {}\n".format(block))
+            outfile.write("Block {} #\n".format(block))
             for k, v in indict.items():
-                outfile.write("    {:<10} {}\n".format(k,v))
+                outfile.write("    {:<10} {:<10} #\n".format(k,v))
 
 def jsonfile_to_dict(jsonfile):
     with open(jsonfile) as infile:
@@ -52,18 +53,9 @@ def split_io_dict(thedict):
            outputdict[k] = v
     return inputdict, outputdict
 
-def validate_dict(thedict):
-    haserror = False
-    for block, blockdict in thedict.items():
-        for k,v in blockdict.items():
-            try:
-                v = float(v)
-            except ValueError as err:
-                haserror = True
-                print("ValueError: {}".format(err))
-    return haserror
-
 def generate_point(rangedict, rangefile):
+    if not rangedict and not rangefile:
+        return [{}]
     ranges = {}
     if rangefile:
         with open(rangefile) as infile:
@@ -76,25 +68,6 @@ def generate_point(rangedict, rangefile):
     permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
     print(permutations_dicts)
     return permutations_dicts
-
-def modify_lhdict(lhdict, moddict, modfile=None):
-    if not moddict and not modfile: return lhdict
-    mods = {}
-    if modfile:
-        with open(modfile) as infile:
-            mods = json.load(infile)
-    if moddict:
-        mods.update(moddict)
-
-    modified = deepcopy(lhdict)
-    for block, blockdict in modified.items():
-        if not "RVLAMUDDIN" in block: continue
-        for k,v in blockdict.items():
-            tmpv = v
-            for modk,modv in mods.items():
-                tmpv = tmpv.replace(modk,str(modv))
-            modified[block][k] = tmpv
-    return modified
 
 def test(lhfile):
     lhdict = lhfile_to_dict(lhfile) 

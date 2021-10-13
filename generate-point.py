@@ -32,7 +32,7 @@ def parse_args():
 
     default_template = "LesHouches.in.MSSMBpV_template"
     default_model = "MSSMTriRpV"
-    models = [x for x in os.listdir(os.getenv("SPHENOPATH")+"/models") if not "README" in x]
+    models = [x for x in os.listdir(os.getenv("SPHENO_PATH")+"/models") if not "README" in x]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', default=default_model, choices=models, help='Choose a model')
@@ -48,11 +48,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    lhdict = LH.lhfile_to_dict(args.input)
-    lhdict = LH.modify_lhdict(lhdict, args.values, args.values_file)
-    LH.validate_dict(lhdict)
-    run_folder = run_tools.get_run_folder(args.output)
-    run_tools.prepare_run_folder(run_folder, lhdict)
-    run_tools.run(run_folder, args.model)
+    manager     = run_tools.SPhenoPointManager(args.output, args.model)
+    sphenopoint = run_tools.SPhenoPoint(args.input, args.model)
+    sphenopoint = sphenopoint.modify_point(args.values, args.values_file)
+    sphenopoint = manager.exists(sphenopoint)
+    sphenopoint.run(args.output)
 
 if __name__ == "__main__": main()
