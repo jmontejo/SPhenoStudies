@@ -3,6 +3,13 @@ import json
 import sys
 from collections import OrderedDict
 
+def safe_float(x):
+    try:
+        x = float(x)
+    except ValueError:
+        pass
+    return x
+
 def lhfile_to_dict(lhfile):
     lhdict = OrderedDict()
     with open(lhfile) as infile:
