@@ -7,20 +7,29 @@ from particle import particle
 log = logging.getLogger(__name__)
 
 class SPhenoPointManager:
-    def __init__(self, outfolder, model):
-        os.makedirs(outfolder, exist_ok=True)
+    def __init__(self, outfolder=None, model=None, withoutput=False):
         self.outfolder = outfolder
         self.model     = model
-        self.folders   = os.listdir(outfolder)
         self.points    = []
-        for folder in self.folders:
-            spp = SPhenoPoint(os.path.join(outfolder,folder),model)
-            self.points.append( spp )
+        if outfolder:
+            os.makedirs(outfolder, exist_ok=True)
+            for folder in os.listdir(outfolder):
+                spp = SPhenoPoint(os.path.join(outfolder,folder),model)
+                if withoutput and not spp.hasoutput():
+                    continue
+                self.points.append( spp )
 
     def add_point(self, point):
         self.points.append(point)
 
     def skim(self, constraints):
+        skimmed = SPhenoPointManager(model=self.model)
+        for point in self.points:
+            for k, v in constraints.items():
+                if v != point.get_var(k, float):
+                    continue
+            skimmed.add_point(point)
+        return skimmed
 
     def get_same_input(self, sphenopoint, ignore=None, equalkeys=False):
         ''' Returns all points that have the same input as the given point, except for variables included in 'ignore' '''
@@ -114,23 +123,47 @@ class SPhenoPoint:
         self.model     = model
         if os.path.isdir(folder_or_file): #read existing folder
             folder = folder_or_file
-            self.folder = folder
-            if os.path.exists(folder+"/LesHouches.in"):
-                self.inputdict = LH.lhfile_to_dict(folder+"/LesHouches.in")
-            if os.path.exists(folder+"/SPheno.spc.{}".format(model)):
-                self.outputdict = LH.lhfile_to_dict(folder+"/SPheno.spc.{}".format(model))
-                self.particles  = self.output_to_particles(self.outputdict)
+            self.process_folder(folder)
         elif os.path.isfile(folder_or_file): #create from file
             infile = folder_or_file
             self.inputdict = LH.lhfile_to_dict(infile)
         else:
             print(folder_or_file, model)
             raise WTF
+    
+    def process_folder(self,folder):
+        self.folder = folder
+        if os.path.exists(folder+"/LesHouches.in"):
+            self.inputdict = LH.lhfile_to_dict(folder+"/LesHouches.in")
+            self.inputs    = self.input_to_inputs(self.inputdict)
+        if os.path.exists(folder+"/SPheno.spc.{}".format(self.model)):
+            self.outputdict = LH.lhfile_to_dict(folder+"/SPheno.spc.{}".format(self.model))
+            self.particles  = self.output_to_particles(self.outputdict)
+        else:
+            print("Could not find output",folder+"/SPheno.spc.{}".format(self.model), self.folder)
 
     def hasoutput(self):
         return self.outputdict is not None
     def hasinput(self):
         return self.inputdict is not None
+
+    def input_to_inputs(self, inputdict):
+        inputs = {}
+        from inputs import map_inputs
+        for iname, ituple in map_inputs.items():
+            blockname, *key = ituple
+            if len(key) == 1:
+                key = key[0]
+                inputs[iname] = inputdict[blockname][str(key)]
+            else:
+                print(inputdict.keys())
+                for strkey, val in inputdict[blockname].items():
+                    tuplekey = list(int(x) for x in strkey.split())
+                    print(key,tuplekey)
+                    if key == tuplekey:
+                        inputs[iname] = val
+                        break
+        return inputs
 
     def output_to_particles(self, outputdict):
         particles = {}
@@ -138,10 +171,17 @@ class SPhenoPoint:
             if "mass" in block.lower():
                 for pdgid, mass in blockdict.items():
                     particles[int(pdgid)] = particle(int(pdgid), str(pdgid), str(pdgid),mass,0,[])
-        print(particles)
         return particles
 
+    def get_var(self, var, convertto=None):
+        print("get_var",var)
+        print(self.inputs.keys())
+        if var in self.inputs:
+            return float(self.inputs[var])
+        return self.get_output(var, convertto)
+
     def get_output(self, outputvar, convertto=None):
+        print("get_output",outputvar)
         pdgid, var = outputvar.split("_")
         particle = self.particles[int(pdgid)]
         if not "BR" in var: v=  getattr(particle, var)
@@ -150,8 +190,9 @@ class SPhenoPoint:
         return v
         
     def get_input(self, inputkeys, convertto=None):
-        ''' Returns all points that have the same input as the given point, except for variables included in 'ignore' '''
-        same_points = []
+        ''' Returns value of input matching the keys
+            The input is a dictionary for convenience but only the first match is returned
+        '''
         for block, bdict in inputkeys.items():
             for k in bdict:
                 v =  self.inputdict[block][k]
@@ -180,11 +221,12 @@ class SPhenoPoint:
         if self.folder:
             log.warning("Output already exists")
             return False
-        self.folder = self.get_run_folder(outputfolder)
-        self.prepare_run_folder(self.folder, self.inputdict)
+        folder = self.get_run_folder(outputfolder)
+        self.prepare_run_folder(folder, self.inputdict)
         log.warning("About to actual run {}".format(self.folder))
         cmd = "cd {} && {} LesHouches.in".format(self.folder, self.model)
         os.system(cmd)
+        self.process_folder(folder)
         return True
 
     def modify_point(self, moddict, modfile=None):
@@ -197,7 +239,6 @@ class SPhenoPoint:
             with open(modfile) as infile:
                 mods = json.load(infile)
         if moddict:
-            print(moddict)
             mods.update(moddict)
     
         modified = deepcopy(self)

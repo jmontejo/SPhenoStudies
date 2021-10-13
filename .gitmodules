@@ -1,3 +1,6 @@
 [submodule "SPheno"]
 	path = SPheno
 	url = https://github.com/jmontejo/SPheno.git
+[submodule "atlasrootstyle"]
+	path = atlasrootstyle
+	url = https://:@gitlab.cern.ch:8443/atlas-publications-committee/atlasrootstyle.git

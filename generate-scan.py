@@ -10,34 +10,7 @@ import json
 
 def parse_args():
     
-    # create a keyvalue class for argparse
-    class keyvalue(argparse.Action):
-        def __call__( self , parser, namespace,
-                     values, option_string = None):
-            setattr(namespace, self.dest, dict())
-              
-            for value in values:
-                key, value = value.split('=')
-                getattr(namespace, self.dest)[key] = value
-
-    # create a keyvaluevalue class for argparse
-    class keyvaluevalue(argparse.Action):
-        def __call__( self , parser, namespace,
-                     value, option_string = None):
-
-            key, value = value.split(':')
-            v1,v2 = value.split('=')
-            setattr(namespace, self.dest, (key,v1,float(v2)))
-
-    # create a keyrange class for argparse
-    class keyrange(argparse.Action):
-        def __call__( self , parser, namespace,
-                     values, option_string = None):
-            setattr(namespace, self.dest, dict())
-              
-            for value in values:
-                key, value = value.split('=')
-                getattr(namespace, self.dest)[key] = eval(value)
+    from parser_helpers import keyvalue, keyvaluevalue, keyrange
 
     default_template = "LesHouches.in.MSSMBpV_template"
     default_model = "MSSMTriRpV"
@@ -49,7 +22,8 @@ def parse_args():
     parser.add_argument('-o', '--output', help='Output folder')
     parser.add_argument('--values', default = [], nargs="*", action=keyvalue, help= 'Set a number of key-value pairs with "key=value"')
     parser.add_argument('--values-file', help= 'Read values from json file. These can still be overriden with --values')
-    parser.add_argument('--ranges', default = [], nargs="*", action=keyrange, help= 'Set a number of key-value pairs with "key=value"')
+    parser.add_argument('--ranges', default = [], nargs="*", action=keyrange, help= 'Set a number of key-range pairs with "key=range".' 
+                                                                                    '"range" can be any python expression such as [1,2,3] or range(8)')
     parser.add_argument('--ranges-file', help= 'Read ranges from json file. These can still be overriden with --ranges')
     parser.add_argument('--target', action=keyvaluevalue, help= 'Set a target output based on a known input with "input:output=value", e.g MSTOPSQUARE:1000002_mass:10=1000 \
                                                                  If the input contains SQUARE the initial point will be the target squared.')

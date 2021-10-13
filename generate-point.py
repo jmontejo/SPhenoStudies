@@ -10,25 +10,7 @@ import json
 
 def parse_args():
     
-    # create a keyvalue class for argparse
-    class keyvalue(argparse.Action):
-        def __call__( self , parser, namespace,
-                     values, option_string = None):
-            setattr(namespace, self.dest, dict())
-              
-            for value in values:
-                key, value = value.split('=')
-                getattr(namespace, self.dest)[key] = value
-
-    # create a keyrange class for argparse
-    class keyrange(argparse.Action):
-        def __call__( self , parser, namespace,
-                     values, option_string = None):
-            setattr(namespace, self.dest, dict())
-              
-            for value in values:
-                key, value = value.split('=')
-                getattr(namespace, self.dest)[key] = eval(value)
+    from parser_helpers import keyvalue
 
     default_template = "LesHouches.in.MSSMBpV_template"
     default_model = "MSSMTriRpV"
