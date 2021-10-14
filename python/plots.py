@@ -17,20 +17,33 @@ root.gStyle.SetTitleSize(30,"XYZ")
 root.gROOT.SetBatch(1)
 root.TH1.SetDefaultSumw2(1)
 
+import logging
+log = logging.getLogger(__name__)
+
+
 class Plot:
-    def __init__(self, name, xvar, yvar, xtitle, ytitle, refhisto, freevars):
+    def __init__(self, name, xvar, yvar, xtitle, ytitle, freevars, rangex=None, rangey=None, options=""):
         self.name = name
         self.xvar = xvar
         self.yvar = yvar
         self.xtitle = xtitle
         self.ytitle = ytitle
-        self.refhisto = refhisto
         self.freevars = freevars
+        self.rangex = rangex if rangex else getRange(xvar)
+        self.rangey = rangey if rangey else getRange(yvar)
+        self.options = options
         self.graphmap = {}
 
-    def add_point(self, xval, yval, br_id = 0):
-        if br_id not in self.graphmap: self.graphmap[br_id] = []
-        self.graphmap[br_id].append((float(xval), float(yval)))
+    def add_point(self, xval, yval, isBR=False):
+        
+        if not isBR:
+            if 0 not in self.graphmap: self.graphmap[0] = []
+            self.graphmap[0].append((float(xval), float(yval)))
+        else:
+            for br_ids, br in yval:
+                log.debug("Adding point: {:<20} id={:<2} xval={:<10} yval={:<10}".format(self.name,str(br_ids), xval,br))
+                if br_ids not in self.graphmap: self.graphmap[br_ids] = []
+                self.graphmap[br_ids].append((float(xval), float(br)))
 
     def do_plot(self, plotfolder):
         can = root.TCanvas()
@@ -40,21 +53,24 @@ class Plot:
         for i,(ids, graphpoints) in enumerate(self.graphmap.items()):
             if not graphpoints: continue
             graphpoints = sorted(graphpoints, key=lambda x:x[0])
-            print(graphpoints)
+            log.debug("About to plot {} {} {}, id={}".format(self.name, self.xvar,self.yvar, ids))
+            log.debug("With values {}".format(graphpoints))
             graph = root.TGraph(len(graphpoints),array.array("d",[x for x,y in graphpoints]),array.array("d",[y for x,y in graphpoints]))
             tmpgraphs.append(graph)
             if i==0: 
-                if self.refhisto:
-                    self.refhisto.Draw()
-                    if self.yvar in mass_ranges.keys(): 
-                        self.refhisto.SetMinimum(mass_ranges[self.yvar][0])
-                        self.refhisto.SetMaximum(mass_ranges[self.yvar][1])
-                    if "BR" in self.yvar:
-                        if not "udd" in self.xvar: self.refhisto.SetMaximum(2.1)
-                        else:                                            self.refhisto.SetMaximum(1.1)
-                    self.refhisto.GetYaxis().SetTitle(self.ytitle)
-                    xaxis = self.refhisto.GetXaxis()
-                    yaxis = self.refhisto.GetYaxis()
+                if False:
+                    pass
+                #if self.refhisto:
+                #    self.refhisto.Draw()
+                #    if self.yvar in mass_ranges.keys(): 
+                #        self.refhisto.SetMinimum(mass_ranges[self.yvar][0])
+                #        self.refhisto.SetMaximum(mass_ranges[self.yvar][1])
+                #    if "BR" in self.yvar:
+                #        if not "udd" in self.xvar: self.refhisto.SetMaximum(2.1)
+                #        else:                                            self.refhisto.SetMaximum(1.1)
+                #    self.refhisto.GetYaxis().SetTitle(self.ytitle)
+                #    xaxis = self.refhisto.GetXaxis()
+                #    yaxis = self.refhisto.GetYaxis()
                 else:
                     graph.Draw("AP")
                     graph.GetYaxis().SetTitle(self.ytitle)
@@ -62,26 +78,30 @@ class Plot:
                     yaxis = graph.GetYaxis()
                 xaxis.SetTitle(self.xtitle)
                 xaxis.SetTitleOffset(1)
-                if "udd" in self.xvar: xaxis.SetRangeUser(-12,1)
-                if "width" in self.yvar: yaxis.SetRangeUser(1e-30,1)
-                if "lifetime" in self.yvar: yaxis.SetRangeUser(-8,8)
-                if "ctau" in self.yvar:  yaxis.SetRangeUser(-8,10)
-                if "BR" in self.yvar: yaxis.SetRangeUser(1e-5,2.1)
+                if self.rangey:
+                    graph.SetMinimum(self.rangey[0])
+                    graph.SetMaximum(self.rangey[1])
+                if self.rangex:
+                    graph.GetXaxis().SetLimits(*self.rangex)
+
             graph.SetMarkerColor(i+1)
             graph.SetLineColor(i+1)
             graph.SetMarkerStyle(20)
-            graph.Draw("same PL")
+            opt = "same P"
+            if not "noline" in self.options:
+                opt += "L"
+            graph.Draw(opt)
             if self.yvar.endswith("BR"): parent = int(self.yvar.split("_")[0])
             else: 
                 parent = 0
                 ids = [0]
             name = getname([parent]) +" #rightarrow "+getname(ids)
             leg.AddEntry(graph,name,"P")
-            #x,y = root.Double(), root.Double()
-            #for i in range( graph.GetN()):
-            #   graph.GetPoint(i,x,y)
-            #   print i,x,y
         if self.yvar.endswith("BR"): leg.Draw("same")
+
+        if "logx" in self.options:
+            can.SetLogx(1)
+
         os.makedirs(plotfolder,exist_ok=True)
         can.SetLogy(0)
         can.SaveAs(os.path.join(plotfolder,self.name+".pdf"))
@@ -92,97 +112,62 @@ class Plot:
             if not graphpoints: continue
             graphpoints = sorted(graphpoints, key=lambda x:x[0])
             graph = root.TGraph(len(graphpoints),array.array("d",[x for x,y in graphpoints]),array.array("d",[y for x,y in graphpoints]))
-            #for fit in fit_list:
-            #    fit.func.SetParameters(*[1 for i in range(fit.nparam)])
-            #    if fit.name == self.name:
-            #        graph.Fit(fit.func)
-            #        graph.Draw("AP")
-            #        can.SetLogz(0)
-            #        can.SaveAs(os.path.join(plotfolder,self.name+"_fit.pdf"))
-            #        can.SetLogz(1)
-            #        can.SaveAs(os.path.join(plotfolder,self.name+"_fit_log.pdf"))
 
-#Plot      = namedtuple("Plot"         ,"name, graphmap, xvar, yvar, xtitle, ytitle, refhisto, freevars")
-#Plot2D    = namedtuple("Plot2D"       ,"name, graph, xvar, yvar, varz, xtitle, ytitle, ztitle, freevars")
-#Fit       = namedtuple("Fit"          ,"name, func, nparam")
+class Plot2D:
+    def __init__(self, name, xvar, yvar, zvar, xtitle, ytitle, ztitle, freevars, rangex=None, rangey=None, rangez=None, options=""):
+        self.name = name
+        self.xvar = xvar
+        self.yvar = yvar
+        self.zvar = zvar
+        self.xtitle = xtitle
+        self.ytitle = ytitle
+        self.ztitle = ztitle
+        self.freevars = freevars
+        self.rangex = rangex if rangex else getRange(xvar)
+        self.rangey = rangey if rangey else getRange(yvar)
+        self.rangez = rangez if rangez else getRange(zvar)
+        self.options = options
+        self.graphpoints = []
 
-plotlist = [
-        Plot("stop_mass_vs_mtR",     "mtR","1000002_mass","mtR","stop mass",0,["1000002_mass"]),
-        #Plot("masssplit_vs_udd",         "udd","1000024_1000022_mass","log10(lambda332)","DeltaM(C1,N1)",0,["udd"]),
-        #Plot("masssplitC1N1_vs_m1",      "m1","1000024_1000022_mass","M1","DeltaM(C1,N1)",0,["m1"]),
-        #Plot("masssplitC1N1_vs_m2",      "m2","1000024_1000022_mass","M2","DeltaM(C1,N1)",0,["m2"]),
-        #Plot("masssplitC1N1_vs_mu",      "mu","1000024_1000022_mass","mu","DeltaM(C1,N1)",0,["mu"]),
-        #Plot("masssplitC1N1_vs_tanbeta", "tanbeta","1000024_1000022_mass","tanbeta","DeltaM(C1,N1)",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("masssplitN2N1_vs_m1",      "m1","1000023_1000022_mass","M1","DeltaM(N2,N1)",0,["m1"]),
-        #Plot("masssplitN2N1_vs_m2",      "m2","1000023_1000022_mass","M2","DeltaM(N2,N1)",0,["m2"]),
-        #Plot("masssplitN2N1_vs_mu",      "mu","1000023_1000022_mass","mu","DeltaM(N2,N1)",0,["mu"]),
-        #Plot("masssplitN2N1_vs_tanbeta", "tanbeta","1000023_1000022_mass","tanbeta","DeltaM(N2,N1)",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("masssplitN2C1_vs_m1",      "m1","1000023_1000024_mass","M1","DeltaM(N2,N1)",0,["m1"]),
-        #Plot("masssplitN2C1_vs_m2",      "m2","1000023_1000024_mass","M2","DeltaM(N2,N1)",0,["m2"]),
-        #Plot("masssplitN2C1_vs_mu",      "mu","1000023_1000024_mass","mu","DeltaM(N2,N1)",0,["mu"]),
-        #Plot("masssplitN2C1_vs_tanbeta", "tanbeta","1000023_1000024_mass","tanbeta","DeltaM(N2,N1)",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("neutralino1_mass_vs_chargino1_mass",    "1000024_mass","1000022_mass","C1 mass","N1 mass",0,ewk),
-        #Plot("neutralino1_ctau_vs_stop", "1000002_mass","1000022_ctau","stop mass","log10(N1 ctau [cm])",0,["mstop"]),
-        #Plot("neutralino1_ctau_vs_tanbeta", "tanbeta","1000022_ctau","tan beta","log10(N1 ctau [cm])",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("neutralino1_ctau_vs_udd", "udd","1000022_ctau","log10(lambda332)","log10(N1 ctau [cm])",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("neutralino1_lifetime_vs_udd", "udd","1000022_lifetime","log10(lambda332)","log10(N1 lifetime [ns])",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("neutralino1_lifetime_vs_tanbeta", "tanbeta","1000022_lifetime","tan beta","log10(N1 lifetime [ns])",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("neutralino1_br_vs_udd", "udd","1000022_BR","log10(lambda332)","N1 BR",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("neutralino1_br_vs_lifetime", "1000022_lifetime","1000022_BR","N1 lifetime [ns]","N1 BR",0,["udd"]),
-        #Plot("neutralino2_lifetime_vs_udd", "udd","1000023_lifetime","log10(lambda332)","log10(N2 lifetime [ns])",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("neutralino2_br_vs_udd", "udd","1000023_BR","log10(lambda332)","N2 BR",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("neutralino2_br_vs_lifetime", "1000023_lifetime","1000023_BR","N2 lifetime [ns]","N2 BR",0,["udd"]),
-        #Plot("neutralino2_br_vs_N1lifetime", "1000022_lifetime","1000023_BR","N1 lifetime [ns]","N2 BR",0,["udd"]),
-        #Plot("chargino1_lifetime_vs_udd", "udd","1000024_lifetime","log10(lambda332)","log10(C1 lifetime [ns])",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("chargino1_br_vs_udd", "udd","1000024_BR","log10(lambda332)","C1 BR",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("chargino1_br_vs_lifetime", "1000024_lifetime","1000024_BR","C1 lifetime [ns]","C1 BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["udd"]),
-        #Plot("chargino1_br_vs_N1lifetime", "1000022_lifetime","1000024_BR","N1 lifetime [ns]","C1 BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["udd"]),
-        #Plot("chargino1_br_vs_lifetime_scantanbeta", "1000024_lifetime","1000024_BR","C1 lifetime [ns]","C1 BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["tanbeta"]),
-        #Plot("chargino1_br_vs_N1lifetime_scantanbeta", "1000022_lifetime","1000024_BR","N1 lifetime [ns]","C1 BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["tanbeta"]),
-        #Plot("chargino1_br_vs_lifetime_scantanbetaudd", "1000024_lifetime","1000024_BR","C1 lifetime [ns]","C1 BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["tanbeta","udd"]),
-        #Plot("chargino1_br_vs_N1lifetime_scantanbetaudd", "1000022_lifetime","1000024_BR","N1 lifetime [ns]","C1 BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["tanbeta","udd"]),
-        #Plot("neutralino1_width_vs_udd", "udd","1000022_width","log10(lambda332)","N1 width [GeV]",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #
-        #Plot("stop_mass_vs_m3",     "m3","1000002_mass","m3","stop mass",0,["m3"]),
-        #Plot("stop_mass_vs_mstop",     "mstop","1000002_mass","mtR","stop mass",0,["mstop"]),
-        #Plot("stop_mass_vs_udd",     "udd","1000002_mass","log10(lambda332)","stop mass",0,["udd"]),
-        #Plot("stop_mass_vs_tanbeta",     "tanbeta","1000002_mass","tan beta","stop mass",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("stop_br_vs_udd"  , "udd","1000002_BR","log10(lambda332)","Stop BR"  ,root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("stop_br_vs_mstop"  , "mstop","1000002_BR","mtR","Stop BR"  ,0,["mstop"]),
-        #Plot("stop_brbs_vs_mstop"  , "mstop","1000002_BR15","mtR","Stop BR to bs"  ,0,["mstop"]),
-        #Plot("stop_br_vs_stop_mass"  , "1000002_mass","1000002_BR","stop mass","Stop BR"  ,0,["mstop"]),
-        #Plot("stop_brbs_vs_stop_mass"  , "1000002_mass","1000002_BR15","stop mass","Stop BR to bs"  ,0,["mstop"]),
-        #Plot("stop_br_vs_neutralino_lifetime"  , "1000022_lifetime","1000002_BR","log10(N1 lifetime [ns])","Stop BR"  ,root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["udd"]),
-        #
-        #Plot("gluino_br_vs_neutralino_lifetime", "1000022_lifetime","1000021_BR","log10(N1 lifetime [ns])","Gluino BR",root.TH1F("h1","h1",len(lifetimeaxis)-1,lifetimeaxis),["udd"]),
-        #Plot("gluino_br_vs_udd", "udd","1000021_BR","log10(lambda332)","Gluino BR",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("gluino_brtbs_vs_udd", "udd","1000021_BR156","log10(lambda332)","Gluino BR to tbs",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("gluino_brqqq_vs_udd", "udd","1000021_BR111","log10(lambda332)","Gluino BR to qqq",root.TH1F("h1","h1",len(uddaxis)-1,uddaxis),["udd"]),
-        #Plot("gluino_br_vs_gluino_mass", "1000021_mass","1000021_BR","gluino mass","Gluino BR",root.TH1F("h1","h1",len(gluinomassaxis)-1,gluinomassaxis),["m3"]),
-        #Plot("gluino_mass_vs_m3",     "m3","1000021_mass","m3","gluino mass",0,["m3"]),
-        #Plot("gluino_mass_vs_tanbeta",     "tanbeta","1000021_mass","tan beta","gluino mass",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("gluino_mass_vs_udd",     "udd","1000021_mass","log10(lambda332)","gluino mass",0,["udd"]),
-        #
-        #Plot("Su6_mass_vs_m3",     "m3","2000006_mass","m3","Su6 mass",0,["m3"]),
-        #Plot("Su6_mass_vs_tanbeta",     "tanbeta","2000006_mass","tan beta","Su6 mass",root.TH1F("h1","h1",len(tanbetaaxis)-1,tanbetaaxis),["tanbeta"]),
-        #Plot("Su6_mass_vs_udd",     "udd","2000006_mass","log10(lambda332)","Su6 mass",0,["udd"]),
+    def add_point(self, xval, yval, zval):
+        self.graphpoints.append((float(xval), float(yval), float(zval)))
 
-        #Plot2D("neutralino1_lifetime_vs_udd_vs_mstop",[],"udd","mstop","1000022_lifetime","log10(lambda332)","mtR","log10(N1 lifetime [cm])",["udd","mstop"]),
-        #Plot2D("neutralino1_lifetime_vs_udd_vs_stopmass",[],"udd","1000002_mass","1000022_lifetime","log10(lambda332)","Stop mass","log10(N1 lifetime [cm])",["udd","mstop"]),
-        #Plot2D("stop_mass_vs_udd_vs_mstop",[],"udd","mstop","1000002_mass","log10(lambda332)","mtR","Stop mass",["udd","mstop"]),
-        #Plot2D("stop_mass_vs_udd_vs_m3",[],"udd","m3","1000002_mass","log10(lambda332)","m3","Stop mass",["udd","m3"]),
-        #Plot2D("stop_mass_vs_mstop_vs_m3",[],"mstop","m3","1000002_mass","mtR","m3","Stop mass",["mstop","m3"]), Scan first
-        #Plot2D("stop_brbs_vs_udd_vs_stop_mass"  ,[], "udd","1000002_mass","1000002_BR15","log10(lambda332)","Stop mass","Stop BR to bs",["udd","mstop"]),
-        #Plot2D("masssplitN2C1_vs_m1_vs_m2",[],    "m1","m2","1000023_1000024_mass","M1","M2","DeltaM(N2,C1)",["m1","m2"]),
-        #Plot2D("masssplitN2N1_vs_m1_vs_m2",[],    "m1","m2","1000023_1000022_mass","M1","M2","DeltaM(N2,N1)",["m1","m2"]),
-        #
-        #Fit("stop_brbs_vs_udd_vs_stop_mass",root.TF2("tf2_stop_brbs_vs_udd_vs_stop_mass", "[0]/(([1]+exp(-[2]*x))*([3]+exp(-[4]*y)))",-2.5,0,400,1600), 5),
-        #Fit("gluino_brtbs_vs_udd",root.TF1("tf1_gluino_brtbs_vs_udd", "1./(1+exp(-[0]*(x-[1])))",-6,1), 3),
-        #Fit("gluino_brqqq_vs_udd",root.TF1("tf1_gluino_brqqq_vs_udd", "1./(1+exp(-[0]*(x-[1])))",-6,1), 3),
-        #Fit("neutralino1_lifetime_vs_udd",root.TF1("tf1_neutralino1_lifetime_vs_udd", "([0]+[1]*x)",-6,1), 2),
-]
 
-plots = {plot.name:plot for plot in plotlist}
+    def do_plot(self, plotfolder):
+        can = root.TCanvas()
+        leg = root.TLegend(0.2,0.6,0.5,0.9)
+        leg.SetLineWidth(0)
+        if not self.graphpoints: return
+        graph = root.TGraph2D(len(self.graphpoints),array.array("d",[x for x,y,z in self.graphpoints]),array.array("d",[y for x,y,z in self.graphpoints]),array.array("d",[z for x,y,z in self.graphpoints]))
+        graph.Draw("colz")
+        histo = graph.GetHistogram()
+        can.SetRightMargin(0.2)
+        xaxis = histo.GetXaxis()
+        xaxis.SetTitle(self.xtitle)
+        xaxis.SetTitleOffset(1)
+        yaxis = histo.GetYaxis()
+        yaxis.SetTitle(self.ytitle)
+        yaxis.SetTitleOffset(1.2)
+        zaxis = histo.GetZaxis()
+        zaxis.SetTitle(self.ztitle)
+        zaxis.SetTitleOffset(1.2)
+        if "ctau" in self.zvar:  histo.GetZaxis().SetRangeUser(-8,10)
+        if "BR" in self.zvar:  histo.GetZaxis().SetRangeUser(0,1)
+        if "1000002_mass" in self.yvar:  histo.GetYaxis().SetRangeUser(200,2000)
+        can.cd()
+        root.gPad.Update()
+        os.makedirs(plotfolder,exist_ok=True)
+        can.SetLogz(0)
+        can.SaveAs(os.path.join(plotfolder,self.name+".pdf"))
+        can.SetLogz(1)
+        can.SaveAs(os.path.join(plotfolder,self.name+"_log.pdf"))
+        if "udd" in self.xvar: 
+            xaxis.SetRangeUser(-3,1)
+            root.gPad.Update()
+            can.SetLogz(0)
+            can.SaveAs(os.path.join(plotfolder,self.name+"_short.pdf"))
+            can.SetLogz(1)
+            can.SaveAs(os.path.join(plotfolder,self.name+"_short_log.pdf"))
 
 def getname(ids):
     name = ""
@@ -206,3 +191,26 @@ def getname(ids):
         else:                                   name += str(part)+" "
     return name
 
+def getRange(var):
+    if "BR" in var:
+        return (1e-6,2.1)
+    if "ctau" in var:
+        return (1e-8,1e10)
+    if "lifetime" in var:
+        return (1e-8,1e8)
+    if "udd" in var:
+        return (1e-6,1.5)
+
+plotlist = [
+    Plot("stop_mass_vs_mtR",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass"]),
+    Plot("stop_mass_vs_mtR_freeudd",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass","udd323"], options="noline"),
+    Plot("masssplit_vs_udd",         "udd323","1000024_1000022_mass","log10(lambda332)","DeltaM(C1,N1)",["udd323"]),
+    Plot("stop_br_vs_udd"  , "udd323","1000002_BR","log10(lambda332)","Stop BR" ,["udd323"], options="logx"),
+]
+
+plotlist2D = [
+    Plot2D("neutralino1_lifetime_vs_udd_vs_stopmass","udd323","1000002_mass","1000022_lifetime","lambda323","Stop mass","log10(N1 lifetime [cm])",["udd","1000002_mass"]),
+]
+
+plots   = {plot.name:plot for plot in plotlist}
+plots2D = {plot.name:plot for plot in plotlist2D}

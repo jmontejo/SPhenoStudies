@@ -1,16 +1,17 @@
 import os
 import LesHouches_converter as LH
-import logging
 from copy import deepcopy
 from particle import particle
 
+import logging
 log = logging.getLogger(__name__)
 
 class SPhenoPointManager:
-    def __init__(self, outfolder=None, model=None, withoutput=False):
+    def __init__(self, outfolder=None, model=None, withoutput=False,massprecision=10):
         self.outfolder = outfolder
         self.model     = model
         self.points    = []
+        self.massprecision = massprecision
         if outfolder:
             os.makedirs(outfolder, exist_ok=True)
             for folder in os.listdir(outfolder):
@@ -23,12 +24,21 @@ class SPhenoPointManager:
         self.points.append(point)
 
     def skim(self, constraints):
+        log.debug("Will skim based on {}".format(constraints))
         skimmed = SPhenoPointManager(model=self.model)
         for point in self.points:
             for k, v in constraints.items():
-                if v != point.get_var(k, float):
-                    continue
-            skimmed.add_point(point)
+                val = point.get_var(k, float)
+                if "mass" in k: #approximate constraints on output masses
+                    if val > v+self.massprecision or val < v-self.massprecision:
+                        break
+                else:
+                    if v != val:
+                        break
+                log.debug("Point satisfies {} {} {}".format(k,val,v))
+            else:
+                skimmed.add_point(point)
+        log.debug("Skimmed points {} -> {}".format(len(self.points),len(skimmed.points)))
         return skimmed
 
     def get_same_input(self, sphenopoint, ignore=None, equalkeys=False):
@@ -45,7 +55,7 @@ class SPhenoPointManager:
                 for k in ignoredict:
                     vals.append( trimspp[block].pop(k) )
             if trimref == trimspp:
-                log.warning("Found match: {}".format(spp.folder))
+                log.info("Found point with same inputs: {}".format(spp.folder))
                 if equalkeys:
                     allequal = all([x == vals[0] for x in vals])
                     if not allequal: continue
@@ -60,7 +70,6 @@ class SPhenoPointManager:
         for spp in self.points: #FIXME try hashes
             if spp.inputdict == sphenopoint.inputdict:
                 log.warning("SPhenoPoint exists: {}".format(spp.folder))
-                log.warning(spp.inputdict)
                 return spp
         return sphenopoint
 
@@ -106,11 +115,9 @@ class SPhenoPointManager:
         else:
             minin = minp.get_input(targetkeys, float)
             maxin = maxp.get_input(targetkeys, float)
-            modulo = 10
-            if "square" in inparam.lower():
-                modulo = pow(modulo,2)
-            print(maxin,minin,targetvalue,maxv,minv)
-            prediction = int(((maxin-minin)*(targetvalue-minv)/(maxv -minv)+minin)/modulo)*modulo
+            massprecision = pow(self.massprecision,2) if "square" in inparam.lower() else self.massprecision
+            prediction = int(((maxin-minin)*(targetvalue-minv)/(maxv -minv)+minin)/massprecision)*massprecision
+        log.debug("Interpolating next target point: {} {}".format(inparam,prediction))
         return {inparam:prediction}
 
 
@@ -128,8 +135,8 @@ class SPhenoPoint:
             infile = folder_or_file
             self.inputdict = LH.lhfile_to_dict(infile)
         else:
-            print(folder_or_file, model)
-            raise WTF
+            log.critical("Could not initialize SPhenoPoint with input: {}".format(folder_or_file))
+            raise RuntimeError
     
     def process_folder(self,folder):
         self.folder = folder
@@ -138,12 +145,14 @@ class SPhenoPoint:
             self.inputs    = self.input_to_inputs(self.inputdict)
         if os.path.exists(folder+"/SPheno.spc.{}".format(self.model)):
             self.outputdict = LH.lhfile_to_dict(folder+"/SPheno.spc.{}".format(self.model))
-            self.particles  = self.output_to_particles(self.outputdict)
+            self.decaydict  = LH.lhfile_to_decaydict(folder+"/SPheno.spc.{}".format(self.model))
+            self.particles  = self.outputs_to_particles(self.outputdict, self.decaydict)
         else:
-            print("Could not find output",folder+"/SPheno.spc.{}".format(self.model), self.folder)
+            log.warning("Could not find output {}/SPheno.spc.{}".format( self.folder, self.model))
 
     def hasoutput(self):
-        return self.outputdict is not None
+        if not self.folder: return False
+        return os.path.exists(os.path.join(self.folder,"Messages.out"))
     def hasinput(self):
         return self.inputdict is not None
 
@@ -156,37 +165,46 @@ class SPhenoPoint:
                 key = key[0]
                 inputs[iname] = inputdict[blockname][str(key)]
             else:
-                print(inputdict.keys())
                 for strkey, val in inputdict[blockname].items():
                     tuplekey = list(int(x) for x in strkey.split())
-                    print(key,tuplekey)
                     if key == tuplekey:
                         inputs[iname] = val
                         break
         return inputs
 
-    def output_to_particles(self, outputdict):
+    def outputs_to_particles(self, outputdict, decaydict):
         particles = {}
         for block, blockdict in outputdict.items():
             if "mass" in block.lower():
                 for pdgid, mass in blockdict.items():
                     particles[int(pdgid)] = particle(int(pdgid), str(pdgid), str(pdgid),mass,0,[])
+        for pdgid, (width, decays) in decaydict.items():
+            particles[pdgid].setWidth(width)
+            particles[pdgid].decays.extend(decays)
         return particles
 
     def get_var(self, var, convertto=None):
-        print("get_var",var)
-        print(self.inputs.keys())
         if var in self.inputs:
             return float(self.inputs[var])
         return self.get_output(var, convertto)
 
     def get_output(self, outputvar, convertto=None):
-        print("get_output",outputvar)
-        pdgid, var = outputvar.split("_")
-        particle = self.particles[int(pdgid)]
-        if not "BR" in var: v=  getattr(particle, var)
-        else: v = particle.skimmedDecays(1e-3,var.replace("BR",""))
-        if convertto: v = convertto(v)
+        *pdgid, var = outputvar.split("_")
+        if len(pdgid)==1:
+            pdgid = pdgid[0]
+            particle = self.particles[int(pdgid)]
+            if not "BR" in var: 
+                v=  getattr(particle, var)
+            else: 
+                v = particle.skimmedDecays(1e-3,var.replace("BR",""))
+            if convertto: v = convertto(v)
+        else:
+            pdgid1, pdgid2 = pdgid
+            particle1 = self.particles[int(pdgid1)]
+            particle2 = self.particles[int(pdgid2)]
+            v1=  float(getattr(particle1, var))
+            v2=  float(getattr(particle2, var))
+            v = v1 -v2
         return v
         
     def get_input(self, inputkeys, convertto=None):
@@ -214,19 +232,19 @@ class SPhenoPoint:
 
     def run(self, outputfolder):
         ''' Run a folder '''
-        log.warning("About to run {}".format(self.folder))
         if not self.validate():
             log.error("Can not run point, some problem with input")
             return False
-        if self.folder:
+        if self.hasoutput():
             log.warning("Output already exists")
             return False
-        folder = self.get_run_folder(outputfolder)
-        self.prepare_run_folder(folder, self.inputdict)
-        log.warning("About to actual run {}".format(self.folder))
+        if not self.folder:
+            self.folder = self.get_run_folder(outputfolder)
+        self.prepare_run_folder(self.folder, self.inputdict)
+        log.info("About to run {}".format(self.folder))
         cmd = "cd {} && {} LesHouches.in".format(self.folder, self.model)
         os.system(cmd)
-        self.process_folder(folder)
+        self.process_folder(self.folder)
         return True
 
     def modify_point(self, moddict, modfile=None):
@@ -246,7 +264,7 @@ class SPhenoPoint:
             for k,v in blockdict.items():
                 tmpv = v
                 for modk,modv in mods.items():
-                    tmpv = tmpv.replace(modk,str(modv))
+                    tmpv = tmpv.replace(modk,repr(modv))
                 modified.inputdict[block][k] = tmpv
         return modified
 
@@ -258,7 +276,7 @@ class SPhenoPoint:
                     v = float(v)
                 except ValueError as err:
                     isgood = False
-                    print("ValueError: {}".format(err))
+                    log.error("Found error while validating {}: {}".format(self.folder, err))
         return isgood
     
     def get_target_keys(self,pattern):

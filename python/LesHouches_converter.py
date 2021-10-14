@@ -2,6 +2,8 @@ from copy import deepcopy
 import json
 import sys
 from collections import OrderedDict
+import logging
+log = logging.getLogger(__name__)
 
 def safe_float(x):
     try:
@@ -29,12 +31,41 @@ def lhfile_to_dict(lhfile):
             if key1.lower() == "block":
                 block = value
                 lhdict[block] = OrderedDict()
+            elif "decay" in key1.lower():
+                break
             else:
                 lhdict[block][key] = value
     return lhdict
 
+
+def lhfile_to_decaydict(lhfile):
+    decaydict = OrderedDict()
+    with open(lhfile) as infile:
+        decay = None
+        for line in infile:
+            if "#" in line:
+                comment = line[line.find("#"):]
+                line = line[:line.find("#")]
+            else:
+                comment = None
+            tokens = line.split()
+            if not tokens: continue
+            key1 = tokens[0]
+
+            if key1.lower() == "decay":
+                pdgid = int(tokens[1])
+                width = float(tokens[2])
+                decay = pdgid
+                decaydict[pdgid] = (width, [])
+            elif decay is None:
+                continue
+            else:
+                br, nbody, *rest = tokens
+                rest = tuple(int(x) for x in rest)
+                decaydict[decay][1].append((rest,float(br)))
+    return decaydict
+
 def dict_to_lhfile(thedict, lhfile):
-    print("dict_to_lhfile")
     with open(lhfile,"w") as outfile:
         for block, indict in thedict.items():
             outfile.write("Block {} #\n".format(block))
@@ -73,13 +104,12 @@ def generate_point(rangedict, rangefile):
     import itertools
     keys, values = zip(*ranges.items())
     permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
-    print(permutations_dicts)
     return permutations_dicts
 
 def test(lhfile):
     lhdict = lhfile_to_dict(lhfile) 
     for k,v in lhdict.items():
-        print(k,v)
+        log.info(k,v)
     jsonout = "testout.json"
     dict_to_jsonfile(lhdict,jsonout)
     jsondict = jsonfile_to_dict(jsonout)
@@ -87,5 +117,6 @@ def test(lhfile):
     dict_to_lhfile(jsondict,lhout)
 
 if __name__ == "__main__": 
+    log.setLevel("DEBUG")
     test("LesHouches.in.MSSMBpV_template")
     #test("SPheno.spc.MSSMBpV")

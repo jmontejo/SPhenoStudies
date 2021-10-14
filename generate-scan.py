@@ -7,6 +7,9 @@ import subprocess
 import LesHouches_converter as LH
 import run_tools
 import json
+import logging
+logging.basicConfig(format="%(levelname)8s %(name)10s: %(message)s")
+log = logging.getLogger(__name__)
 
 def parse_args():
     
@@ -17,7 +20,7 @@ def parse_args():
     models = [x for x in os.listdir("SPheno/models") if not "README" in x]
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('model', default=default_model, choices=models, help='Choose a model')
+    parser.add_argument('--model', default=default_model, choices=models, help='Choose a model')
     parser.add_argument('-i', '--input', default=default_template, help='Input template')
     parser.add_argument('-o', '--output', help='Output folder')
     parser.add_argument('--values', default = [], nargs="*", action=keyvalue, help= 'Set a number of key-value pairs with "key=value"')
@@ -27,11 +30,16 @@ def parse_args():
     parser.add_argument('--ranges-file', help= 'Read ranges from json file. These can still be overriden with --ranges')
     parser.add_argument('--target', action=keyvaluevalue, help= 'Set a target output based on a known input with "input:output=value", e.g MSTOPSQUARE:1000002_mass:10=1000 \
                                                                  If the input contains SQUARE the initial point will be the target squared.')
+    parser.add_argument('--verbose', '-v', action='count', default=0)
+
     args = parser.parse_args()
     if not args.output:
         args.output = "outputs_{}".format(args.model)
     if args.target and (args.target in args.values or args.target in args.ranges):
         log.fatal("Target can not be in --values or --ranges")
+    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+    for logger in loggers:
+        logger.setLevel(max(10,30-10*args.verbose))
 
     return args
 
@@ -40,6 +48,7 @@ def main():
     manager = run_tools.SPhenoPointManager(args.output, args.model)
     basesphenopoint = run_tools.SPhenoPoint(args.input, args.model)
     for point in LH.generate_point(args.ranges, args.ranges_file):
+        log.debug("Generated new scan point: {}".format(point))
         sphenopoint = basesphenopoint.modify_point(point)
         sphenopoint = sphenopoint.modify_point(args.values, args.values_file)
         if args.target:

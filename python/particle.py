@@ -1,4 +1,6 @@
 import math
+import logging
+log = logging.getLogger(__name__)
 
 class particle:
     def __init__(self,pdgid, name, symbol, mass, width, decays):
@@ -20,7 +22,6 @@ class particle:
 
         if doMergeUpDownQuarks:
             tmpids = sorted([(x+1)%2+1 if x<=6 else x for x in tmpids])
-            print(tmpids, sorted(list(ids)))
         else: #else doMergeUpDownQuarks
             if len(tmpids)==2 or tmpids[-1]>4:
                 if tmpids[0] == tmpids[1]:
@@ -46,7 +47,6 @@ class particle:
                 tmpids[2] = 1
             if doMergeLightQuarks:
                 tmpids = sorted([x if x>=5 else 1 for x in tmpids])
-            #print ids,"-->",tmpids
         return tuple(tmpids)
         
     def mergeDecays(self):
@@ -65,13 +65,12 @@ class particle:
         if not onlythis: return [(ids,br) for (ids,br) in self.decays if br > thr]
         theids = tuple(int(i) for i in onlythis)
         tmp = [br for (ids,br) in self.decays if ids==theids]
-        if debug: print(theids, tmp)
         if len(tmp): return tmp[0]
         else: return 0
 
 
     def __str__(self):
-        thestr = 'particle(pdgid=%d, name=%s, symbol=%s, mass=%f, width=%f)' % (self.pdgid, self.name, self.symbol, self.mass, self.width)
+        thestr = 'particle(pdgid={}, name={}, symbol={}, mass={}, width={})'.format(self.pdgid, self.name, self.symbol, self.mass, self.width)
         for decay in self.decays:
             if decay[1]<1e-3: break
             thestr += '\n\t'+str(decay)

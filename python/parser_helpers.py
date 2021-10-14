@@ -1,4 +1,6 @@
 import argparse
+import sys
+
 # create a keyvalue class for argparse
 class keyvalue(argparse.Action):
     def __call__( self , parser, namespace,
@@ -7,7 +9,7 @@ class keyvalue(argparse.Action):
           
         for value in values:
             key, value = value.split('=')
-            getattr(namespace, self.dest)[key] = value
+            getattr(namespace, self.dest)[key] = float(value)
 
 # create a keyvaluevalue class for argparse
 class keyvaluevalue(argparse.Action):
@@ -26,5 +28,11 @@ class keyrange(argparse.Action):
           
         for value in values:
             key, value = value.split('=')
-            getattr(namespace, self.dest)[key] = eval(value)
+            try:
+                getattr(namespace, self.dest)[key] = eval(value)
+            except SyntaxError as err:
+                import logging
+                log = logging.getLogger(__name__)
+                log.error("Found syntax error in range definition: {}".format(err))
+                sys.exit(1)
 
