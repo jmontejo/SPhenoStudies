@@ -177,23 +177,23 @@ class Plot2D:
 def getname(ids):
     name = ""
     for part in ids:
-        if   part == 1000002: name += "#tilde{t} " 
-        elif part == 1000021: name += "#tilde{g} " 
-        elif part == 1000022: name += "#tilde{#chi_{1}^{0}} " 
-        elif part == 1000023: name += "#tilde{#chi_{2}^{0}} " 
-        elif part == 1000024: name += "#tilde{#chi_{1}^{#pm}} " 
-        elif part ==             1: name += "q " 
-        elif part ==             2: name += "q' " 
-        elif part ==            11: name += "l " 
-        elif part ==            12: name += "v " 
-        elif part ==             5: name += "b " 
-        elif part ==             6: name += "t " 
-        elif part ==             3: name += "s " 
-        elif part ==             4: name += "c " 
-        elif part ==            25: name += "h " 
-        elif part ==            24: name += "W " 
-        elif part ==            23: name += "Z " 
-        else:                                   name += str(part)+" "
+        if   abs(part) == 1000002: name += "#tilde{t} " 
+        elif abs(part) == 1000021: name += "#tilde{g} " 
+        elif abs(part) == 1000022: name += "#tilde{#chi_{1}^{0}} " 
+        elif abs(part) == 1000023: name += "#tilde{#chi_{2}^{0}} " 
+        elif abs(part) == 1000024: name += "#tilde{#chi_{1}^{#pm}} " 
+        elif abs(part) ==       1: name += "q " 
+        elif abs(part) ==       2: name += "q' " 
+        elif abs(part) ==      11: name += "l " 
+        elif abs(part) ==      12: name += "v " 
+        elif abs(part) ==       5: name += "b " 
+        elif abs(part) ==       6: name += "t " 
+        elif abs(part) ==       3: name += "s " 
+        elif abs(part) ==       4: name += "c " 
+        elif abs(part) ==      25: name += "h " 
+        elif abs(part) ==      24: name += "W " 
+        elif abs(part) ==      23: name += "Z " 
+        else:                      name += str(part)+" "
     return name
 
 def getRange(var):
@@ -220,7 +220,7 @@ plotlist = [
     Plot("stop_mass_vs_mtR",     "mtR","1000002_mass","mtR","stop mass"),
     Plot("stop_mass_vs_mtR_freeudd323",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass","udd323"], options="noline"),
     Plot("masssplit_vs_udd323",         "udd323","1000024_1000022_mass","lambda''323","DeltaM(C1,N1)"),
-    Plot("stop_br_vs_udd323"  , "udd323","1000002_BR","log10(lambda332)","Stop BR"),
+    Plot("stop_br_vs_udd323"  , "udd323","1000002_BR","lambda''323","Stop BR"),
 ]
 
 plotlist2D = [

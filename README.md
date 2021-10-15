@@ -96,3 +96,6 @@ An extension can be used with `pdgid1_pdgid2_observable`, which computes observa
 
 The plots that can be produced are defined in [plots.py](python/plots.py). Also 2D plots can be defined. Each plot defines a set of variables that are allowed to vary. Even if they are specified as a constraint from command-line they will be allowed to vary. If only one variable is allowed to vary simple graph outputs are produced, if several are allowed then the output is a scatter plot.
 
+## Full example
+
+See [example.sh](example.sh) for a self-contained example running several scans and plots
