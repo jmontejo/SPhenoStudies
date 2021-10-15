@@ -10,7 +10,7 @@ models or couplings are needed simply adjust the -DMODELS
 
 ### Setup 
 
-Simply 'source setup.sh` before running
+Simply `source setup.sh` before running
 
 ## Running scans
 
@@ -22,7 +22,7 @@ A model has to be specified, and outputs of different models can not be combined
 ./generate-scan.py --model MSSMTriRpV
 ```
 
-The input is a plain text LesHouches file (see [example](templates/LesHouches.in.template) where any number of parameters
+The input is a plain text LesHouches file (see [example](templates/LesHouches.in.template)) where any number of parameters
 are not defined but have instead a text field that will be replaced by the actual value:
 ```
 Block EXTPAR        # Input parameters
@@ -49,7 +49,8 @@ Block MSD2IN    #
     3 3   DECOUPLEDSQUARED  # md2(3,3)
 ```
 
-The values to be replaced can be defined via command-line using any number of key=value assignments, and/or read out from a json file
+The values to be replaced can be defined via command-line using any number of key=value assignments, and/or read out from a json file.
+In case the same key is defined in both the command-line argument has preference, this allows to override file values.
 ```
 ./generate-scan.py --model MSSMTriRpV --input templates/LesHouches.in.template --values DECOUPLEDSQUARED=9e6 M1TEMPLATE=200 --values-file templates/UDD_MFV.json
 ```
@@ -61,7 +62,7 @@ Scanning variables
 
 Ranges of values can be set to run scans, both from command-line or from a file, the range can be any valid python expression:
 ```
-./generate-scan.py ... --ranges 'TANBETA=[2,5,20,65]' 'M1TEMPLATE=range(200,600,100)' 'UDDTEMPLATE323=[log10(-i) for i in range(5)]'
+./generate-scan.py ... --ranges 'TANBETA=[2,5,20,65]' 'M1TEMPLATE=range(200,600,100)' 'UDDTEMPLATE323=[pow(10,-i) for i in range(5)]'
 ```
 
 Notice the above expression will generate a scan in 3 dimension, which might take very long to run.

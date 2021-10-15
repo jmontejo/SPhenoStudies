@@ -1,15 +1,17 @@
 import argparse
-import sys
+from collections import OrderedDict
 
 # create a keyvalue class for argparse
 class keyvalue(argparse.Action):
     def __call__( self , parser, namespace,
                  values, option_string = None):
-        setattr(namespace, self.dest, dict())
+        setattr(namespace, self.dest, OrderedDict())
           
         for value in values:
             key, value = value.split('=')
-            getattr(namespace, self.dest)[key] = float(value)
+            value = float(value)
+            value = int(value) if value.is_integer() else value
+            getattr(namespace, self.dest)[key] = value
 
 # create a keyvaluevalue class for argparse
 class keyvaluevalue(argparse.Action):

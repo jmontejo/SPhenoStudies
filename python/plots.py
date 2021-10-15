@@ -22,16 +22,16 @@ log = logging.getLogger(__name__)
 
 
 class Plot:
-    def __init__(self, name, xvar, yvar, xtitle, ytitle, freevars, rangex=None, rangey=None, options=""):
+    def __init__(self, name, xvar, yvar, xtitle, ytitle, freevars=None, rangex=None, rangey=None, options=""):
         self.name = name
         self.xvar = xvar
         self.yvar = yvar
         self.xtitle = xtitle
         self.ytitle = ytitle
-        self.freevars = freevars
+        self.freevars = freevars if freevars else [xvar]
         self.rangex = rangex if rangex else getRange(xvar)
         self.rangey = rangey if rangey else getRange(yvar)
-        self.options = options
+        self.options = options if options else getOptions(xvar, yvar)
         self.graphmap = {}
 
     def add_point(self, xval, yval, isBR=False):
@@ -114,7 +114,7 @@ class Plot:
             graph = root.TGraph(len(graphpoints),array.array("d",[x for x,y in graphpoints]),array.array("d",[y for x,y in graphpoints]))
 
 class Plot2D:
-    def __init__(self, name, xvar, yvar, zvar, xtitle, ytitle, ztitle, freevars, rangex=None, rangey=None, rangez=None, options=""):
+    def __init__(self, name, xvar, yvar, zvar, xtitle, ytitle, ztitle, freevars=None, rangex=None, rangey=None, rangez=None, options=""):
         self.name = name
         self.xvar = xvar
         self.yvar = yvar
@@ -122,11 +122,11 @@ class Plot2D:
         self.xtitle = xtitle
         self.ytitle = ytitle
         self.ztitle = ztitle
-        self.freevars = freevars
+        self.freevars = freevars if freevars else [xvar, yvar]
         self.rangex = rangex if rangex else getRange(xvar)
         self.rangey = rangey if rangey else getRange(yvar)
         self.rangez = rangez if rangez else getRange(zvar)
-        self.options = options
+        self.options = options if options else getOptions(xvar, yvar, zvar)
         self.graphpoints = []
 
     def add_point(self, xval, yval, zval):
@@ -139,7 +139,7 @@ class Plot2D:
         leg.SetLineWidth(0)
         if not self.graphpoints: return
         graph = root.TGraph2D(len(self.graphpoints),array.array("d",[x for x,y,z in self.graphpoints]),array.array("d",[y for x,y,z in self.graphpoints]),array.array("d",[z for x,y,z in self.graphpoints]))
-        graph.Draw("colz")
+        graph.Draw("colz1")
         histo = graph.GetHistogram()
         can.SetRightMargin(0.2)
         xaxis = histo.GetXaxis()
@@ -156,6 +156,11 @@ class Plot2D:
         if "1000002_mass" in self.yvar:  histo.GetYaxis().SetRangeUser(200,2000)
         can.cd()
         root.gPad.Update()
+
+        if "logx" in self.options:
+            can.SetLogx(1)
+        if "logz" in self.options:
+            can.SetLogz(1)
         os.makedirs(plotfolder,exist_ok=True)
         can.SetLogz(0)
         can.SaveAs(os.path.join(plotfolder,self.name+".pdf"))
@@ -199,17 +204,28 @@ def getRange(var):
     if "lifetime" in var:
         return (1e-8,1e8)
     if "udd" in var:
-        return (1e-6,1.5)
+        return (1e-4,1.5)
+
+def getOptions(xvar, yvar, zvar=None):
+    if "udd" in xvar:
+        return "logx"
+    if "udd" in yvar:
+        return "logy"
+    if zvar:
+        if "lifetime" in zvar:
+            return "logz"
 
 plotlist = [
-    Plot("stop_mass_vs_mtR",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass"]),
-    Plot("stop_mass_vs_mtR_freeudd",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass","udd323"], options="noline"),
-    Plot("masssplit_vs_udd",         "udd323","1000024_1000022_mass","log10(lambda332)","DeltaM(C1,N1)",["udd323"]),
-    Plot("stop_br_vs_udd"  , "udd323","1000002_BR","log10(lambda332)","Stop BR" ,["udd323"], options="logx"),
+    Plot("stop_mass_vs_udd323",     "udd323","1000002_mass","lambda''323","stop mass"),
+    Plot("stop_mass_vs_mtR",     "mtR","1000002_mass","mtR","stop mass"),
+    Plot("stop_mass_vs_mtR_freeudd323",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass","udd323"], options="noline"),
+    Plot("masssplit_vs_udd323",         "udd323","1000024_1000022_mass","lambda''323","DeltaM(C1,N1)"),
+    Plot("stop_br_vs_udd323"  , "udd323","1000002_BR","log10(lambda332)","Stop BR"),
 ]
 
 plotlist2D = [
-    Plot2D("neutralino1_lifetime_vs_udd_vs_stopmass","udd323","1000002_mass","1000022_lifetime","lambda323","Stop mass","log10(N1 lifetime [cm])",["udd","1000002_mass"]),
+    Plot2D("neutralino1_lifetime_vs_udd323_vs_stopmass","udd323","1000002_mass","1000022_lifetime","lambda323","Stop mass","log10(N1 lifetime [cm])"),
+    Plot2D("stop_mass_vs_mtR_vs_udd323","udd323","mtR","1000002_mass","lambda323","mtR","Stop mass"),
 ]
 
 plots   = {plot.name:plot for plot in plotlist}

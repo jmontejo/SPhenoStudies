@@ -247,7 +247,7 @@ class SPhenoPoint:
         self.process_folder(self.folder)
         return True
 
-    def modify_point(self, moddict, modfile=None):
+    def modify_point(self, moddict, modfile=None, target=None):
         if self.outputdict:
             log.error("Will modify a SP which has already output!")
         import json
@@ -258,6 +258,9 @@ class SPhenoPoint:
                 mods = json.load(infile)
         if moddict:
             mods.update(moddict)
+
+        if target:
+            mods.pop(target[0],None)
     
         modified = deepcopy(self)
         for block, blockdict in modified.inputdict.items():

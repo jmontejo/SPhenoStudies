@@ -35,8 +35,6 @@ def parse_args():
     args = parser.parse_args()
     if not args.output:
         args.output = "outputs_{}".format(args.model)
-    if args.target and (args.target in args.values or args.target in args.ranges):
-        log.fatal("Target can not be in --values or --ranges")
     loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
     for logger in loggers:
         logger.setLevel(max(10,30-10*args.verbose))
@@ -50,7 +48,7 @@ def main():
     for point in LH.generate_point(args.ranges, args.ranges_file):
         log.debug("Generated new scan point: {}".format(point))
         sphenopoint = basesphenopoint.modify_point(point)
-        sphenopoint = sphenopoint.modify_point(args.values, args.values_file)
+        sphenopoint = sphenopoint.modify_point(args.values, args.values_file, args.target)
         if args.target:
             while(True):
                 target = manager.get_target(sphenopoint, args.target)
