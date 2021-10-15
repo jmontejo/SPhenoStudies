@@ -214,6 +214,7 @@ def getOptions(xvar, yvar, zvar=None):
     if zvar:
         if "lifetime" in zvar:
             return "logz"
+    return ""
 
 plotlist = [
     Plot("stop_mass_vs_udd323",     "udd323","1000002_mass","lambda''323","stop mass"),
