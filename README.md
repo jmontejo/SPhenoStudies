@@ -57,8 +57,7 @@ In case the same key is defined in both the command-line argument has preference
 
 The outputs are individual folders for each point, with a simple consecutive numbering scheme. In the previous example the output is one single folder since all inputs are fixed
 
-Scanning variables
------------------
+### Scanning variables
 
 Ranges of values can be set to run scans, both from command-line or from a file, the range can be any valid python expression:
 ```
@@ -67,8 +66,7 @@ Ranges of values can be set to run scans, both from command-line or from a file,
 
 Notice the above expression will generate a scan in 3 dimension, which might take very long to run.
 
-Target variables
------------------
+### Target variables
 
 All the variables defined in the input are defined at the level of the SUSY lagrangian. 
 Sometimes it is required to study how an input affects some properties of a particle, however the mass of the particle also depends on the input.
