@@ -12,7 +12,7 @@
 ./plot.py --input outputs_MSSMTriRpV -o plots -c udd323=0.1 tanbeta=10 --plots stop_mass_vs_mtR
 ./plot.py --input outputs_MSSMTriRpV -o plots -c 1000002_mass=1000 tanbeta=10 --plots stop_br_vs_udd323
 # 1D plot, the udd323 constraint is ignored since it enters the x-axis
-# the output is a scatter plot since the stop mass also depends on mtR, which is not fixed
+# the output is a scatter plot since the stop mass also depends on mtR, which is not fixed. See below properly as 2D
 ./plot.py --input outputs_MSSMTriRpV -o plots -c udd323=0.1 tanbeta=10 --plots stop_mass_vs_udd323
 # 2D plots, run multiple plots at once
 ./plot.py --input outputs_MSSMTriRpV -o plots -c udd323=0.1 tanbeta=10 --plots2D neutralino1_lifetime_vs_udd_vs_stopmass stop_mass_vs_mtR_vs_udd323
