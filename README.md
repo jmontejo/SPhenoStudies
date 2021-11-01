@@ -74,7 +74,7 @@ For example, the branching ratio of a stop to b+s will depend on the UDD lambda'
 loop effects involving the UDD coupling and sbottom/s-strange masses. Instead of fixing the input, the input can be varied until a target output is obtained.
 The format is "input_parameter:output=target_value". The format and conventions for the output observables are defined in the [plotting](#plotting) section.
 ```
-./generate-scan.py ... --target MSTOPSQUARED:1000002_mass=1000 --ranges 'UDDTEMPLATE323=[log10(-i) for i in range(5)]'
+./generate-scan.py ... --target MSTOPSQUARED:1000002_mass=1000 --ranges 'UDDTEMPLATE323=[pow(10,-i) for i in range(5)]'
 ```
 
 A scan of MSTOPSQUARED will be performed until a stop mass of 1000 GeV is achieved (notice that in RPV models all squarks mix, so 1000002 is the lightest up-type squark regardless of the generation).
