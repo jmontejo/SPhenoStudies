@@ -1,4 +1,4 @@
-import os
+import os, sys
 import LesHouches_converter as LH
 from copy import deepcopy
 from particle import particle
@@ -136,7 +136,9 @@ class SPhenoPoint:
             self.inputdict = LH.lhfile_to_dict(infile)
         else:
             log.critical("Could not initialize SPhenoPoint with input: {}".format(folder_or_file))
-            raise RuntimeError
+            if not os.path.exists(folder_or_file):
+                log.critical("Input does not exist")
+            sys.exit(1)
     
     def process_folder(self,folder):
         self.folder = folder

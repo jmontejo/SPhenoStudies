@@ -166,7 +166,7 @@ class Plot2D:
         can.SaveAs(os.path.join(plotfolder,self.name+".pdf"))
         can.SetLogz(1)
         can.SaveAs(os.path.join(plotfolder,self.name+"_log.pdf"))
-        if "udd" in self.xvar: 
+        if "udd" in self.xvar or "lqd" in self.yvar: 
             xaxis.SetRangeUser(-3,1)
             root.gPad.Update()
             can.SetLogz(0)
@@ -201,15 +201,15 @@ def getRange(var):
         return (1e-6,2.1)
     if "ctau" in var:
         return (1e-8,1e10)
-    if "lifetime" in var:
-        return (1e-8,1e8)
-    if "udd" in var:
+    #if "lifetime" in var:
+    #    return (1e-8,1e8)
+    if "udd" in var or "lqd" in var:
         return (1e-4,1.5)
 
 def getOptions(xvar, yvar, zvar=None):
-    if "udd" in xvar:
+    if "udd" in xvar or "lqd" in xvar:
         return "logx"
-    if "udd" in yvar:
+    if "udd" in yvar or "lqd" in yvar:
         return "logy"
     if zvar:
         if "lifetime" in zvar:
@@ -222,6 +222,10 @@ plotlist = [
     Plot("stop_mass_vs_mtR_freeudd323",     "mtR","1000002_mass","mtR","stop mass",["1000002_mass","udd323"], options="noline"),
     Plot("masssplit_vs_udd323",         "udd323","1000024_1000022_mass","lambda''323","DeltaM(C1,N1)"),
     Plot("stop_br_vs_udd323"  , "udd323","1000002_BR","lambda''323","Stop BR"),
+    Plot("neutralino1_br_vs_lqd333"  , "lqd333","1000022_BR","lambda'333","N1 BR"),
+    Plot("chargino1_br_vs_lqd333"  , "lqd333","1000024_BR","lambda'333","C1 BR"),
+    Plot("neutralino1_lifetime_vs_lqd333"  , "lqd333","1000022_lifetime","lambda'333","log10(N1 lifetime [cm])"),
+    Plot("chargino1_br_vs_neutralino1_lifetime"  , "1000022_lifetime","1000024_BR","log10(N1 lifetime [cm])","C1 BR"),
 ]
 
 plotlist2D = [

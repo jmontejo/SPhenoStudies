@@ -15,7 +15,7 @@ def parse_args():
     
     from parser_helpers import keyvalue, keyvaluevalue, keyrange
 
-    default_template = "LesHouches.in.MSSMBpV_template"
+    default_template = "templates/LesHouches.in.template"
     default_model = "MSSMTriRpV"
     models = [x for x in os.listdir("SPheno/models") if not "README" in x]
 
