@@ -16,11 +16,10 @@ class particle:
         self.ctau  = math.log10(3e10 * 6.582119514e-25 / width)
         self.lifetime  = math.log10(1e9 * 6.582119514e-25 / width)
 
-    def mapids(self,ids):
-        tmpids = sorted(list(ids))
-        if doNotMergeDecays: return tuple(tmpids)
+    def mapids(self,ids,mergeupdown,mergelight):
+        tmpids = sorted(list(abs(i) for i in ids))
 
-        if doMergeUpDownQuarks:
+        if mergeupdown:
             tmpids = sorted([(x+1)%2+1 if x<=6 else x for x in tmpids])
         else: #else doMergeUpDownQuarks
             if len(tmpids)==2 or tmpids[-1]>4:
@@ -45,19 +44,19 @@ class particle:
                 tmpids[0] = 1
                 tmpids[1] = 1
                 tmpids[2] = 1
-            if doMergeLightQuarks:
+            if mergelight:
                 tmpids = sorted([x if x>=5 else 1 for x in tmpids])
         return tuple(tmpids)
         
-    def mergeDecays(self):
+    def mergeDecays(self,mergeupdown=False,mergelight=False):
         mergedecay = {}
         for decay in self.decays:
-            theids = self.mapids(decay[0])
+            theids = self.mapids(decay[0],mergeupdown,mergelight)
             if not theids in mergedecay.keys():
                 mergedecay[theids] = decay[1]
             else:
                 mergedecay[theids] += decay[1]
-        self.decays = [(ids,br) for ids, br in mergedecay.iteritems()]
+        self.decays = [(ids,br) for ids, br in mergedecay.items()]
         self.decays.sort(key=lambda x: x[1],reverse=True)
 
 

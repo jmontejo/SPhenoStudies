@@ -35,7 +35,7 @@ class SPhenoPointManager:
                 else:
                     if v != val:
                         break
-                log.debug("Point satisfies {} {} {}".format(k,val,v))
+                log.debug("Point satisfies {} {} {}: {}".format(k,val,v,point.folder))
             else:
                 skimmed.add_point(point)
         log.debug("Skimmed points {} -> {}".format(len(self.points),len(skimmed.points)))
@@ -152,6 +152,10 @@ class SPhenoPoint:
         else:
             log.warning("Could not find output {}/SPheno.spc.{}".format( self.folder, self.model))
 
+    def mergeDecays(self):
+        for p in self.particles.values():
+            p.mergeDecays()
+
     def hasoutput(self):
         if not self.folder: return False
         return os.path.exists(os.path.join(self.folder,"Messages.out"))
@@ -166,7 +170,7 @@ class SPhenoPoint:
             if len(key) == 1:
                 key = key[0]
                 inputs[iname] = inputdict[blockname][str(key)]
-            else:
+            elif blockname in inputdict:
                 for strkey, val in inputdict[blockname].items():
                     tuplekey = list(int(x) for x in strkey.split())
                     if key == tuplekey:
@@ -196,7 +200,15 @@ class SPhenoPoint:
             pdgid = pdgid[0]
             particle = self.particles[int(pdgid)]
             if not "BR" in var: 
-                v=  getattr(particle, var)
+                try:
+                    v=  getattr(particle, var)
+                except AttributeError as e:
+                    log.error("Problem with point {}".format(self.folder))
+                    if var=="lifetime":
+                        log.warning("Will manually set particle lifetime to 9e9 {}".format(pdgid))
+                        v = 9e9
+                    else:
+                        raise e
             else: 
                 v = particle.skimmedDecays(1e-3,var.replace("BR",""))
             if convertto: v = convertto(v)

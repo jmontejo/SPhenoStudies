@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument('--plots', default = [], choices=plots.plots.keys(), nargs="*", help= 'List of plots to produce')
     parser.add_argument('--plots2D', default = [], choices=plots.plots2D.keys(), nargs="*", help= 'List of 2D plots to produce')
     parser.add_argument('--verbose', '-v', action='count', default=0)
+    parser.add_argument('--merge-decays', '-m', action='store_true')
 
     args = parser.parse_args()
     if not args.output:
@@ -39,10 +40,12 @@ def main():
         plot = plots.plots[plotname]
         skimmed = manager.skim({k:v for k,v in args.constraints.items() if k not in plot.freevars})
         for point in skimmed.points:
+            if args.merge_decays:
+                point.mergeDecays()
             xvalue = point.get_var(plot.xvar)
             yvalue = point.get_var(plot.yvar)
             plot.add_point(xvalue, yvalue, "BR" in plot.yvar)
-        plot.do_plot(args.output)
+        plot.do_plot(args.output,args.merge_decays)
 
     for plotname in args.plots2D:
         plot = plots.plots2D[plotname]
