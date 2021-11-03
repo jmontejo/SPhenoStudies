@@ -9,17 +9,25 @@ if ! command -v python3 &> /dev/null; then
     lsetup "views LCG_100 x86_64-centos7-gcc8-opt"
 fi
 
-### Link RPV models (more are available on deman)
+### Link RPV models (more are available on demand)
 cd SPheno/models
 ln -s ../../SARAH_models/Models/* .
 cd ../..
 
-### Install SPheno
+### Compile and install SPheno
+echo ""
+echo "Will compile and install SPheno, this can take several hours"
+echo ""
 cd SPheno
 mkdir build
 cd build
 cmake -DMODELS=MSSMTriRpV ..
 make -j8
 make install
-cd ..
+cd ../..
+
+echo ""
+echo "Installation completed. Before every session remember to:"
+echo "    source setup.sh"
+echo ""
 
