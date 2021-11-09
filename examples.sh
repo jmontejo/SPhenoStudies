@@ -15,4 +15,4 @@
 # the output is a scatter plot since the stop mass also depends on mtR, which is not fixed. See below properly as 2D
 ./plot.py --input outputs_MSSMTriRpV -o plots -c udd323=0.1 tanbeta=10 --plots stop_mass_vs_udd323
 # 2D plots, run multiple plots at once
-./plot.py --input outputs_MSSMTriRpV -o plots -c udd323=0.1 tanbeta=10 --plots2D neutralino1_lifetime_vs_udd_vs_stopmass stop_mass_vs_mtR_vs_udd323
+./plot.py --input outputs_MSSMTriRpV -o plots -c udd323=0.1 tanbeta=10 --plots2D neutralino1_lifetime_vs_udd323_vs_stopmass stop_mass_vs_mtR_vs_udd323
