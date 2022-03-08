@@ -183,7 +183,7 @@ class SPhenoPoint:
         for block, blockdict in outputdict.items():
             if "mass" in block.lower():
                 for pdgid, mass in blockdict.items():
-                    particles[int(pdgid)] = particle(int(pdgid), str(pdgid), str(pdgid),mass,0,[])
+                    particles[int(pdgid)] = particle(int(pdgid), str(pdgid),mass,0,[])
         for pdgid, (width, decays) in decaydict.items():
             particles[pdgid].setWidth(width)
             particles[pdgid].decays.extend(decays)

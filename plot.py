@@ -45,7 +45,7 @@ def main():
             xvalue = point.get_var(plot.xvar)
             yvalue = point.get_var(plot.yvar)
             plot.add_point(xvalue, yvalue, "BR" in plot.yvar)
-        plot.do_plot(args.output,args.merge_decays)
+        plot.do_plot(args.output)
 
     for plotname in args.plots2D:
         plot = plots.plots2D[plotname]

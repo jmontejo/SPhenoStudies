@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
-import os, glob
+import os, glob, sys
 from collections import namedtuple
 from multiprocessing import Pool
 import argparse
 import subprocess
-import LesHouches_converter as LH
-import run_tools
 import json
 import logging
 logging.basicConfig(format="%(levelname)8s %(name)10s: %(message)s")
 log = logging.getLogger(__name__)
+
+try:
+    import LesHouches_converter as LH
+    import run_tools
+except ModuleNotFoundError as e:
+    ok = os.getenv('SPHENO_PATH') 
+    if not ok:
+        print("ERROR: environment variables are not set, you probably forgot to: source setup.sh")
+        sys.exit(1)
+    raise e
 
 def parse_args():
     
@@ -31,6 +39,7 @@ def parse_args():
     parser.add_argument('--target', action=keyvaluevalue, help= 'Set a target output based on a known input with "input:output=value", e.g MSTOPSQUARE:1000002_mass:10=1000 \
                                                                  If the input contains SQUARE the initial point will be the target squared.')
     parser.add_argument('--verbose', '-v', action='count', default=0)
+    parser.add_argument('-j', '--parallel', type=int, default=1, help='Number of parallel jobs to run, default 1')
 
     args = parser.parse_args()
     if not args.output:
@@ -45,10 +54,16 @@ def main():
     args    = parse_args()
     manager = run_tools.SPhenoPointManager(args.output, args.model)
     basesphenopoint = run_tools.SPhenoPoint(args.input, args.model)
+    workerpool = Pool(args.parallel)
     for point in LH.generate_point(args.ranges, args.ranges_file):
         log.debug("Generated new scan point: {}".format(point))
         sphenopoint = basesphenopoint.modify_point(point)
         sphenopoint = sphenopoint.modify_point(args.values, args.values_file, args.target)
+        workerpool.apply_async(run_onepoint, (args, sphenopoint, manager))
+    workerpool.close()
+    workerpool.join()
+
+def run_onepoint(args, sphenopoint, manager):
         if args.target:
             while(True):
                 target = manager.get_target(sphenopoint, args.target)

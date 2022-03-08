@@ -1,6 +1,7 @@
 from collections import namedtuple
 import ROOT as root
 import os, sys, glob, array, math
+from particle import getname
 
 root.gROOT.LoadMacro("atlasrootstyle/AtlasStyle.C")
 root.gROOT.LoadMacro("atlasrootstyle/AtlasUtils.C")
@@ -45,7 +46,7 @@ class Plot:
                 if br_ids not in self.graphmap: self.graphmap[br_ids] = []
                 self.graphmap[br_ids].append((float(xval), float(br)))
 
-    def do_plot(self, plotfolder, mergedecays):
+    def do_plot(self, plotfolder, mergedecays=False):
         can = root.TCanvas()
         leg = root.TLegend(0.2,0.6,0.5,0.9)
         leg.SetLineWidth(0)
@@ -95,7 +96,7 @@ class Plot:
             else: 
                 parent = 0
                 ids = [0]
-            name = getname([parent]) +" #rightarrow "+getname(ids,mergedecays)
+            name = getnames([parent]) +" #rightarrow "+getnames(ids,mergedecays)
             leg.AddEntry(graph,name,"P")
         if self.yvar.endswith("BR"): leg.Draw("same")
 
@@ -174,30 +175,10 @@ class Plot2D:
             can.SetLogz(1)
             can.SaveAs(os.path.join(plotfolder,self.name+"_short_log.pdf"))
 
-def getname(ids,mergedecays=False):
+def getnames(ids,mergedecays=False):
     name = ""
     for part in ids:
-        if   abs(part) == 1000002: name += "#tilde{t} " 
-        elif abs(part) == 1000021: name += "#tilde{g} " 
-        elif abs(part) == 1000022: name += "#tilde{#chi_{1}^{0}} " 
-        elif abs(part) == 1000023: name += "#tilde{#chi_{2}^{0}} " 
-        elif abs(part) == 1000024: name += "#tilde{#chi_{1}^{#pm}} " 
-        elif abs(part) ==       1: name += "q " 
-        elif abs(part) ==       2: name += "q " if mergedecays else "q' "
-        elif abs(part) ==       3: name += "q " if mergedecays else "s " 
-        elif abs(part) ==       4: name += "q " if mergedecays else "c " 
-        elif abs(part) ==      11: name += "l " if mergedecays else "e " 
-        elif abs(part) ==      13: name += "l " if mergedecays else "#mu " 
-        elif abs(part) ==      15: name += "l " if mergedecays else "#tau " 
-        elif abs(part) ==      12: name += "v " 
-        elif abs(part) ==      14: name += "v " 
-        elif abs(part) ==      16: name += "v " 
-        elif abs(part) ==       5: name += "b " 
-        elif abs(part) ==       6: name += "t " 
-        elif abs(part) ==      25: name += "h " 
-        elif abs(part) ==      24: name += "W " 
-        elif abs(part) ==      23: name += "Z " 
-        else:                      name += str(part)+" "
+        name += getname(part,mergedecays)+" "
     return name
 
 def getRange(var):
