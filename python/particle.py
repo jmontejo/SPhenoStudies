@@ -68,11 +68,6 @@ class particle:
                 else:
                     possibleHtoother += decay[1]
                     possibleHcount   += 1
-                if self.pdgid==1000025:
-                    print(self.pdgid, decay, theids, possibleHtobb, possibleHtoother, possibleHcount)
-            elif 23 in theids:
-                if self.pdgid==1000025:
-                    print(self.pdgid, decay, theids)
             if not theids in mergedecay.keys():
                 mergedecay[theids] = decay[1]
             else:
@@ -93,8 +88,6 @@ class particle:
                     del mergedecay[key]
                 for key, val in keystoadd:
                     mergedecay[key] = val
-            else:
-                log.warning("DEBUGGING: %f %f %d",possibleHtobb,possibleHtoother,possibleHcount)
 
         self.checkProblematicMerge(mergedecay)
 
@@ -102,7 +95,6 @@ class particle:
         self.decays.sort(key=lambda x: x[1],reverse=True)
 
     def checkProblematicMerge(self,mergedecay):
-        print(mergedecay.keys())
         for decay in mergedecay:
             if decay[0] is self.offshellZ and (23, decay[1]) in mergedecay:
                 log.error("Both on-shell and off-shell Z's in decay of %s",self.name)

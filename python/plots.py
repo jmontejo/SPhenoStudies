@@ -47,6 +47,7 @@ class Plot:
                 self.graphmap[br_ids].append((float(xval), float(br)))
 
     def do_plot(self, plotfolder, mergedecays=False):
+        self.checkBRconsistency()
         can = root.TCanvas()
         leg = root.TLegend(0.2,0.6,0.5,0.9)
         leg.SetLineWidth(0)
@@ -98,7 +99,8 @@ class Plot:
                 ids = [0]
             name = getnames([parent]) +" #rightarrow "+getnames(ids,mergedecays)
             leg.AddEntry(graph,name,"P")
-        if self.yvar.endswith("BR"): leg.Draw("same")
+        if self.yvar.endswith("BR"):
+            leg.Draw("same")
 
         if "logx" in self.options:
             can.SetLogx(1)
@@ -113,6 +115,19 @@ class Plot:
             if not graphpoints: continue
             graphpoints = sorted(graphpoints, key=lambda x:x[0])
             graph = root.TGraph(len(graphpoints),array.array("d",[x for x,y in graphpoints]),array.array("d",[y for x,y in graphpoints]))
+    
+    def checkBRconsistency(self):
+        if not self.yvar.endswith("BR"): return True
+        thresholdBR = 1e-2
+        cumulativeBR = {}
+        for ids, graphpoints in self.graphmap.items():
+            for x,y in graphpoints:
+                if x not in cumulativeBR:cumulativeBR[x] = 0
+                cumulativeBR[x] += y
+        for x, y in cumulativeBR.items():
+            if abs(y-1) > thresholdBR:
+                log.warning("Problem with the BRs in %s, the sum of BRs do not add up to 1: X-variable: %f, sum of BR: %f)",self.name, x,y)
+                
 
 class Plot2D:
     def __init__(self, name, xvar, yvar, zvar, xtitle, ytitle, ztitle, freevars=None, rangex=None, rangey=None, rangez=None, options=""):
