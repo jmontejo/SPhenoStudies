@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 import os, sys, glob, array, math
 import argparse
-import plots
-import run_tools
 import logging
 logging.basicConfig(format="%(levelname)8s %(name)10s: %(message)s")
 log = logging.getLogger(__name__)
+try:
+    import plots
+    import run_tools
+except ModuleNotFoundError as e:
+    ok = os.getenv('SPHENO_PATH') 
+    if not ok:
+        print("ERROR: environment variables are not set, you probably forgot to: source setup.sh")
+        sys.exit(1)
+    raise e
 
 def parse_args():
 

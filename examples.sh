@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #### Generate points
 # Run one point, set the tanbeta value to something different from what is the benchmark file
 ./generate-scan.py --input templates/LesHouches.in.template --values-file templates/benchmark_UDD323.json --values TANBETATEMPLATE=5
